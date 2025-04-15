@@ -37,7 +37,15 @@
   </video>
   <canvas id="canvasFrame"></canvas>
 
+  <div class="debug-container">
+    <div class="debug-title">Canvas Output</div>
+    <canvas id="canvasOutput"></canvas>
+  </div>
 
+  <div class="debug-container">
+    <div class="debug-title">Grayscale</div>
+    <canvas id="canvasGray"></canvas>
+  </div>
 
   <div class="debug-container">
     <div class="debug-title">Edge</div>
@@ -47,9 +55,13 @@
   <script>
     const video = document.getElementById("video");
     const canvasFrame = document.getElementById("canvasFrame");
+    const canvasOutput = document.getElementById("canvasOutput");
+    const canvasGray = document.getElementById("canvasGray");
     const canvasEdge = document.getElementById("canvasEdge");
 
     const ctxFrame = canvasFrame.getContext("2d");
+    const ctxOutput = canvasOutput.getContext("2d");
+    const ctxGray = canvasGray.getContext("2d");
     const ctxEdge = canvasEdge.getContext("2d");
 
     video.addEventListener("loadedmetadata", () => {
