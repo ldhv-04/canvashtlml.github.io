@@ -34,38 +34,39 @@
 
   <!-- OpenCV.js -->
   <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
-
   <script>
     function onOpenCvReady() {
-      const video = document.getElementById("video");
-      const canvasFrame = document.getElementById("canvasFrame");
-      const ctxFrame = canvasFrame.getContext("2d");
-      const canvasOutput = document.getElementById("canvasOutput");
-
-      const src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
-      const gray = new cv.Mat();
-      const edges = new cv.Mat();
-
-      function processFrame() {
-        if (video.paused || video.ended) {
-          src.delete(); gray.delete(); edges.delete();
-          return;
+      cv['onRuntimeInitialized'] = () => {
+        const video = document.getElementById("video");
+        const canvasFrame = document.getElementById("canvasFrame");
+        const ctxFrame = canvasFrame.getContext("2d");
+        const canvasOutput = document.getElementById("canvasOutput");
+  
+        const src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+        const gray = new cv.Mat();
+        const edges = new cv.Mat();
+  
+        function processFrame() {
+          if (video.paused || video.ended) {
+            src.delete(); gray.delete(); edges.delete();
+            return;
+          }
+  
+          ctxFrame.drawImage(video, 0, 0, video.width, video.height);
+          let imageData = ctxFrame.getImageData(0, 0, video.width, video.height);
+          src.data.set(imageData.data);
+  
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+          cv.Canny(gray, edges, 50, 150);
+          cv.imshow("canvasOutput", edges);
+  
+          requestAnimationFrame(processFrame);
         }
-
-        ctxFrame.drawImage(video, 0, 0, video.width, video.height);
-        let imageData = ctxFrame.getImageData(0, 0, video.width, video.height);
-        src.data.set(imageData.data);
-
-        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-        cv.Canny(gray, edges, 50, 150);
-        cv.imshow("canvasOutput", edges);
-
-        requestAnimationFrame(processFrame);
-      }
-
-      video.addEventListener("play", () => {
-        requestAnimationFrame(processFrame);
-      });
+  
+        video.addEventListener("play", () => {
+          requestAnimationFrame(processFrame);
+        });
+      };
     }
   </script>
 </body>
