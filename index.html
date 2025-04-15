@@ -11,10 +11,9 @@
   <canvas id="canvasFrame" width="640" height="480" style="display:none;"></canvas>
   <canvas id="canvasOutput" width="640" height="480"></canvas>
 
-  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
-
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
   <script>
-    function onOpenCvReady() {
+    cv['onRuntimeInitialized'] = () => {
       const video = document.getElementById("video");
       const canvasFrame = document.getElementById("canvasFrame");
       const ctxFrame = canvasFrame.getContext("2d");
@@ -30,14 +29,10 @@
           return;
         }
 
-        // Vẽ video frame lên canvas
         ctxFrame.drawImage(video, 0, 0, video.width, video.height);
         let imageData = ctxFrame.getImageData(0, 0, video.width, video.height);
-
-        // Chuyển thành Mat của OpenCV
         src.data.set(imageData.data);
 
-        // Xử lý Canny
         cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
         cv.Canny(gray, edges, 50, 150);
         cv.imshow("canvasOutput", edges);
@@ -48,7 +43,7 @@
       video.addEventListener("play", () => {
         requestAnimationFrame(processFrame);
       });
-    }
+    };
   </script>
 </body>
 </html>
