@@ -2,13 +2,12 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Manual Canny Edge Detection</title>
+  <title>Optimized Canny Edge Detection</title>
   <style>
     body {
       display: flex;
       justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap;
+      align-items: center;
       gap: 20px;
       padding: 20px;
       background: #f0f0f0;
@@ -19,16 +18,6 @@
     #canvasFrame {
       display: none;
     }
-    .debug-title {
-      font-size: 14px;
-      text-align: center;
-      margin-bottom: 4px;
-    }
-    .debug-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
   </style>
 </head>
 <body>
@@ -36,57 +25,38 @@
     <source src="myvideo.mp4" type="video/mp4">
   </video>
   <canvas id="canvasFrame"></canvas>
-
-  <div class="debug-container">
-    <div class="debug-title">Canvas Output</div>
-    <canvas id="canvasOutput"></canvas>
-  </div>
+  <canvas id="canvasOutput"></canvas>
 
   <script>
     const video = document.getElementById("video");
     const canvasFrame = document.getElementById("canvasFrame");
     const canvasOutput = document.getElementById("canvasOutput");
-    const canvasEdge = document.getElementById("canvasEdge");
-
     const ctxFrame = canvasFrame.getContext("2d");
     const ctxOutput = canvasOutput.getContext("2d");
-    const ctxEdge = canvasEdge.getContext("2d");
 
     video.addEventListener("loadedmetadata", () => {
-      const width = video.videoWidth;
-      const height = video.videoHeight;
+      const scale = 1.0;
+      const width = Math.floor(video.videoWidth * scale);
+      const height = Math.floor(video.videoHeight * scale);
 
-      [canvasFrame, canvasOutput, canvasGray, canvasEdge].forEach(c => {
-        c.width = width;
-        c.height = height;
-      });
+      canvasFrame.width = canvasOutput.width = width;
+      canvasFrame.height = canvasOutput.height = height;
 
       function toGrayscale(data) {
-        const gray = new Uint8ClampedArray(data.length / 4);
+        const gray = new Uint8Array(data.length / 4);
         for (let i = 0; i < gray.length; i++) {
           const offset = i * 4;
           const r = data[offset];
           const g = data[offset + 1];
           const b = data[offset + 2];
-          gray[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+          gray[i] = (0.299 * r + 0.587 * g + 0.114 * b) | 0;
         }
         return gray;
       }
 
-      function renderGrayToCanvas(gray, ctx, width, height) {
-        const imageData = ctx.createImageData(width, height);
-        for (let i = 0; i < gray.length; i++) {
-          const offset = i * 4;
-          imageData.data[offset] = imageData.data[offset + 1] = imageData.data[offset + 2] = gray[i];
-          imageData.data[offset + 3] = 255;
-        }
-        ctx.putImageData(imageData, 0, 0);
-      }
-
       function cannyEdge(gray, width, height, lowThreshold = 50, highThreshold = 100) {
         const output = new Uint8ClampedArray(width * height * 4);
-        const magnitude = new Float32Array(width * height);
-        const direction = new Float32Array(width * height);
+        const magnitude = new Uint8Array(width * height);
 
         const Gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
         const Gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
@@ -104,10 +74,8 @@
                 sy += Gy[idx] * val;
               }
             }
-            const mag = Math.sqrt(sx * sx + sy * sy);
-            const angle = Math.atan2(sy, sx);
+            const mag = Math.abs(sx) + Math.abs(sy);
             magnitude[y * width + x] = mag;
-            direction[y * width + x] = angle;
           }
         }
 
@@ -128,10 +96,7 @@
         ctxFrame.drawImage(video, 0, 0, width, height);
         const imageData = ctxFrame.getImageData(0, 0, width, height);
         const gray = toGrayscale(imageData.data);
-
         const edgeData = cannyEdge(gray, width, height);
-        ctxEdge.putImageData(new ImageData(edgeData, width, height), 0, 0);
-
         const resultImage = new ImageData(edgeData, width, height);
         ctxOutput.putImageData(resultImage, 0, 0);
 
