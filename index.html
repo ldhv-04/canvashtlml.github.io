@@ -1,19 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Canny Edge Detection Side by Side</title>
   <style>
     body {
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
       gap: 20px;
-      background: #f4f4f4;
+      height: 100vh;
+      background: #f0f0f0;
     }
     video, canvas {
-      border: 1px solid #333;
+      border: 1px solid #444;
     }
     #canvasFrame {
       display: none;
@@ -21,53 +21,60 @@
   </style>
 </head>
 <body>
-  <!-- Video Gốc -->
-  <video id="video" width="640" height="480" controls muted>
+  <video id="video" controls muted>
     <source src="myvideo.mp4" type="video/mp4">
   </video>
+  <canvas id="canvasFrame"></canvas>
+  <canvas id="canvasOutput"></canvas>
 
-  <!-- Canvas Xử Lý (ẩn) -->
-  <canvas id="canvasFrame" width="640" height="480"></canvas>
-
-  <!-- Canvas Kết Quả -->
-  <canvas id="canvasOutput" width="640" height="480"></canvas>
-
-  <!-- OpenCV.js -->
-  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
+  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
   <script>
+    let video = document.getElementById("video");
+
     function onOpenCvReady() {
       cv['onRuntimeInitialized'] = () => {
-        const video = document.getElementById("video");
-        const canvasFrame = document.getElementById("canvasFrame");
-        const ctxFrame = canvasFrame.getContext("2d");
-        const canvasOutput = document.getElementById("canvasOutput");
-  
-        const src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
-        const gray = new cv.Mat();
-        const edges = new cv.Mat();
-  
-        function processFrame() {
-          if (video.paused || video.ended) {
-            src.delete(); gray.delete(); edges.delete();
-            return;
+        video.addEventListener("loadedmetadata", () => {
+          // Thiết lập lại canvas đúng kích thước
+          const width = video.videoWidth;
+          const height = video.videoHeight;
+
+          const canvasFrame = document.getElementById("canvasFrame");
+          const ctxFrame = canvasFrame.getContext("2d");
+          const canvasOutput = document.getElementById("canvasOutput");
+
+          canvasFrame.width = width;
+          canvasFrame.height = height;
+          canvasOutput.width = width;
+          canvasOutput.height = height;
+
+          const src = new cv.Mat(height, width, cv.CV_8UC4);
+          const gray = new cv.Mat();
+          const edges = new cv.Mat();
+
+          function processFrame() {
+            if (video.paused || video.ended) {
+              src.delete(); gray.delete(); edges.delete();
+              return;
+            }
+
+            ctxFrame.drawImage(video, 0, 0, width, height);
+            let imageData = ctxFrame.getImageData(0, 0, width, height);
+            src.data.set(imageData.data);
+
+            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+            cv.Canny(gray, edges, 50, 150);
+            cv.imshow("canvasOutput", edges);
+
+            requestAnimationFrame(processFrame);
           }
-  
-          ctxFrame.drawImage(video, 0, 0, video.width, video.height);
-          let imageData = ctxFrame.getImageData(0, 0, video.width, video.height);
-          src.data.set(imageData.data);
-  
-          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-          cv.Canny(gray, edges, 50, 150);
-          cv.imshow("canvasOutput", edges);
-  
-          requestAnimationFrame(processFrame);
-        }
-  
-        video.addEventListener("play", () => {
-          requestAnimationFrame(processFrame);
+
+          video.addEventListener("play", () => {
+            requestAnimationFrame(processFrame);
+          });
         });
       };
     }
   </script>
+  <script onload="onOpenCvReady()" async src="https://docs.opencv.org/4.x/opencv.js"></script>
 </body>
 </html>
