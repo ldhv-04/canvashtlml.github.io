@@ -1,50 +1,49 @@
-<HTML>
+<!DOCTYPE html>
+<html>
 <head>
-<canvas id="mycanvas" width="600" height="250"></canvas>
-<video src = "myvideo.mp4" 
-    width= "320"
-    height= "240"
-    controls>
-    
-    Download my video in <a href = myVideo.ogg>Ogg</a> <a href = myVideo.mp4>MP4</a> <a href = myVideo.webm>WebM</a> format
-</video>
-    
-    <script async src = "https://docs.opencv.org/4.x/opencv.js" onload = "onOpenCvReady();" ></script>
-    <script>
-        let video = document.createElement("video");
-        let canvas = document.getElementById("mycanvas");
-        let ctx = canvas.getContext("2d");
-        let cap, src, gray, edges;
-
-
-        function onOpenCvReady() {
-            video.addEventListener("play", () => {
-            cap = new cv.VideoCapture(video);
-            src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-            gray = new cv.Mat();
-            edges = new cv.Mat();
-
-            function processFrame() {
-                if (video.paused || video.ended) {
-                    src.delete(); gray.delete(); edges.delete();
-                    return;
-                }
-
-                cap.read(src);
-                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-                cv.Canny(gray, edges, 50, 150);
-                cv.imshow("canvasOutput", edges);
-
-                requestAnimationFrame(processFrame);
-                }
-
-            requestAnimationFrame(processFrame);
-        });
-        }
-    </script>
-
+  <title>Canny Edge Detection from MP4 Video</title>
 </head>
 <body>
+  <video id="video" width="640" height="480" controls>
+    <source src="myvideo.mp4" type="video/mp4">
+    Your browser does not support HTML5 video.
+  </video>
 
+  <canvas id="canvasOutput" width="640" height="480"></canvas>
+
+  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
+
+  <script>
+    let video = document.getElementById("video");
+    let canvas = document.getElementById("canvasOutput");
+    let ctx = canvas.getContext("2d");
+
+    let cap, src, gray, edges;
+
+    function onOpenCvReady() {
+      video.addEventListener("play", () => {
+        cap = new cv.VideoCapture(video);
+        src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+        gray = new cv.Mat();
+        edges = new cv.Mat();
+
+        function processFrame() {
+          if (video.paused || video.ended) {
+            src.delete(); gray.delete(); edges.delete();
+            return;
+          }
+
+          cap.read(src);
+          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+          cv.Canny(gray, edges, 50, 150);
+          cv.imshow("canvasOutput", edges);
+
+          requestAnimationFrame(processFrame);
+        }
+
+        requestAnimationFrame(processFrame);
+      });
+    }
+  </script>
 </body>
-</HTML>
+</html>
