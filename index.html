@@ -42,23 +42,23 @@
     <canvas id="canvasOutput"></canvas>
   </div>
 
-
-
   <script>
     const video = document.getElementById("video");
     const canvasFrame = document.getElementById("canvasFrame");
     const canvasOutput = document.getElementById("canvasOutput");
-
+    const canvasGray = document.getElementById("canvasGray");
+    const canvasEdge = document.getElementById("canvasEdge");
 
     const ctxFrame = canvasFrame.getContext("2d");
     const ctxOutput = canvasOutput.getContext("2d");
-
+    const ctxGray = canvasGray.getContext("2d");
+    const ctxEdge = canvasEdge.getContext("2d");
 
     video.addEventListener("loadedmetadata", () => {
       const width = video.videoWidth;
       const height = video.videoHeight;
 
-      [canvasFrame, canvasOutput].forEach(c => {
+      [canvasFrame, canvasOutput, canvasGray, canvasEdge].forEach(c => {
         c.width = width;
         c.height = height;
       });
