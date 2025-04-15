@@ -95,8 +95,11 @@
         ctx.putImageData(imageData, 0, 0);
       }
 
-      function sobelEdge(gray, width, height, threshold = 100) {
+      function cannyEdge(gray, width, height, lowThreshold = 50, highThreshold = 100) {
         const output = new Uint8ClampedArray(width * height * 4);
+        const magnitude = new Float32Array(width * height);
+        const direction = new Float32Array(width * height);
+
         const Gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
         const Gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
 
@@ -114,12 +117,20 @@
               }
             }
             const mag = Math.sqrt(sx * sx + sy * sy);
-            const offset = (y * width + x) * 4;
-            const edge = mag > threshold ? 255 : 0;
-            output[offset] = output[offset + 1] = output[offset + 2] = edge;
-            output[offset + 3] = 255;
+            const angle = Math.atan2(sy, sx);
+            magnitude[y * width + x] = mag;
+            direction[y * width + x] = angle;
           }
         }
+
+        for (let i = 0; i < magnitude.length; i++) {
+          const val = magnitude[i];
+          const offset = i * 4;
+          const edge = val >= highThreshold ? 255 : (val >= lowThreshold ? 128 : 0);
+          output[offset] = output[offset + 1] = output[offset + 2] = edge;
+          output[offset + 3] = 255;
+        }
+
         return output;
       }
 
@@ -131,7 +142,7 @@
         const gray = toGrayscale(imageData.data);
         renderGrayToCanvas(gray, ctxGray, width, height);
 
-        const edgeData = sobelEdge(gray, width, height);
+        const edgeData = cannyEdge(gray, width, height);
         ctxEdge.putImageData(new ImageData(edgeData, width, height), 0, 0);
 
         const resultImage = new ImageData(edgeData, width, height);
