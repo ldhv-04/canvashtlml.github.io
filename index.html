@@ -1,44 +1,46 @@
 <HTML>
 <head>
-    <script>
-        window.onload = function() {
-            var img = new Image();
-            img.onload = function() {
-                invertColor(this);
-            };
-            img.src = "leapingkitten.jpg";
-        };
-        window.onload = function(){
-
-        }
-
-        function invertColor(img) {
-            var canvas = document.getElementById("mycanvas");
-            var context = canvas.getContext("2d");
-            // draw image at top-left corner
-            context.drawImage(img, 0, 0);
-            // draw original image right beside the previous image
-            context.drawImage(img, img.width, 0);
-            // get ImageData object from the left image
-            var imageData = context.getImageData(0, 0, img.width, img.height);
-            var data = imageData.data;
-            
-            for (var i = 0; i < data.length; i += 4) {
-                data[i] = 255 - data[i]; // red
-                data[i + 1] = 255 - data[i + 1]; // green
-                data[i + 2] = 255 - data[i + 2]; // blue
-                data[i + 3] = 255; // alpha
-            }
-            context.putImageData(imageData, 0, 0);
-        }
-    </script>
-    <video src = "myvideo.mp4" 
+<video src = "myvideo.mp4" 
     width= "320"
     height= "240"
     controls>
     
     Download my video in <a href = myVideo.ogg>Ogg</a> <a href = myVideo.mp4>MP4</a> <a href = myVideo.webm>WebM</a> format
-    </video>
+</video>
+    
+    <script async src = "https://docs.opencv.org/4.x/opencv.js" onload = "onOpenCvReady();" ></script>
+    <script>
+        let video = document.createElement("video");
+        let canvas = document.getElementById("mycanvas");
+        let ctx = canvas.getContext("2d");
+        let cap, src, gray, edges;
+
+
+        function onOpenCvReady() {
+            video.addEventListener("play", () => {
+            cap = new cv.VideoCapture(video);
+            src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
+            gray = new cv.Mat();
+            edges = new cv.Mat();
+
+            function processFrame() {
+                if (video.paused || video.ended) {
+                    src.delete(); gray.delete(); edges.delete();
+                    return;
+                }
+
+                cap.read(src);
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                cv.Canny(gray, edges, 50, 150);
+                cv.imshow("canvasOutput", edges);
+
+                requestAnimationFrame(processFrame);
+                }
+
+            requestAnimationFrame(processFrame);
+        });
+        }
+    </script>
 
 </head>
 <body>
