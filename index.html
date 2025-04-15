@@ -1,19 +1,42 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Canny Edge Detection on MP4</title>
+  <meta charset="UTF-8">
+  <title>Canny Edge Detection Side by Side</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      gap: 20px;
+      background: #f4f4f4;
+    }
+    video, canvas {
+      border: 1px solid #333;
+    }
+    #canvasFrame {
+      display: none;
+    }
+  </style>
 </head>
 <body>
+  <!-- Video Gốc -->
   <video id="video" width="640" height="480" controls muted>
     <source src="myvideo.mp4" type="video/mp4">
   </video>
 
-  <canvas id="canvasFrame" width="640" height="480" style="display:none;"></canvas>
+  <!-- Canvas Xử Lý (ẩn) -->
+  <canvas id="canvasFrame" width="640" height="480"></canvas>
+
+  <!-- Canvas Kết Quả -->
   <canvas id="canvasOutput" width="640" height="480"></canvas>
 
-  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <!-- OpenCV.js -->
+  <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
+
   <script>
-    cv['onRuntimeInitialized'] = () => {
+    function onOpenCvReady() {
       const video = document.getElementById("video");
       const canvasFrame = document.getElementById("canvasFrame");
       const ctxFrame = canvasFrame.getContext("2d");
@@ -43,7 +66,7 @@
       video.addEventListener("play", () => {
         requestAnimationFrame(processFrame);
       });
-    };
+    }
   </script>
 </body>
 </html>
