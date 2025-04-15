@@ -1,46 +1,51 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Canny Edge Detection from MP4 Video</title>
+  <title>Canny Edge Detection on MP4</title>
 </head>
 <body>
-  <video id="video" width="640" height="480" controls>
-    <source src="myvideo.mp4" type="video/mp4">
-    Your browser does not support HTML5 video.
+  <video id="video" width="640" height="480" controls muted>
+    <source src="your_video.mp4" type="video/mp4">
   </video>
 
+  <canvas id="canvasFrame" width="640" height="480" style="display:none;"></canvas>
   <canvas id="canvasOutput" width="640" height="480"></canvas>
 
   <script async src="https://docs.opencv.org/4.x/opencv.js" onload="onOpenCvReady();"></script>
 
   <script>
-    let video = document.getElementById("video");
-    let canvas = document.getElementById("canvasOutput");
-    let ctx = canvas.getContext("2d");
-
-    let cap, src, gray, edges;
-
     function onOpenCvReady() {
-      video.addEventListener("play", () => {
-        cap = new cv.VideoCapture(video);
-        src = new cv.Mat(video.videoHeight, video.videoWidth, cv.CV_8UC4);
-        gray = new cv.Mat();
-        edges = new cv.Mat();
+      const video = document.getElementById("video");
+      const canvasFrame = document.getElementById("canvasFrame");
+      const ctxFrame = canvasFrame.getContext("2d");
+      const canvasOutput = document.getElementById("canvasOutput");
 
-        function processFrame() {
-          if (video.paused || video.ended) {
-            src.delete(); gray.delete(); edges.delete();
-            return;
-          }
+      const src = new cv.Mat(video.height, video.width, cv.CV_8UC4);
+      const gray = new cv.Mat();
+      const edges = new cv.Mat();
 
-          cap.read(src);
-          cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-          cv.Canny(gray, edges, 50, 150);
-          cv.imshow("canvasOutput", edges);
-
-          requestAnimationFrame(processFrame);
+      function processFrame() {
+        if (video.paused || video.ended) {
+          src.delete(); gray.delete(); edges.delete();
+          return;
         }
 
+        // Vẽ video frame lên canvas
+        ctxFrame.drawImage(video, 0, 0, video.width, video.height);
+        let imageData = ctxFrame.getImageData(0, 0, video.width, video.height);
+
+        // Chuyển thành Mat của OpenCV
+        src.data.set(imageData.data);
+
+        // Xử lý Canny
+        cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+        cv.Canny(gray, edges, 50, 150);
+        cv.imshow("canvasOutput", edges);
+
+        requestAnimationFrame(processFrame);
+      }
+
+      video.addEventListener("play", () => {
         requestAnimationFrame(processFrame);
       });
     }
