@@ -1,15 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Canny Edge Detection Side by Side</title>
+  <meta charset="UTF-8">
+  <title>Manual Canny Edge Detection</title>
   <style>
     body {
       display: flex;
       justify-content: center;
-      align-items: center;
+      align-items: flex-start;
+      flex-wrap: wrap;
       gap: 20px;
-      height: 100vh;
+      padding: 20px;
       background: #f0f0f0;
     }
     video, canvas {
@@ -18,6 +19,16 @@
     #canvasFrame {
       display: none;
     }
+    .debug-title {
+      font-size: 14px;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+    .debug-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -25,56 +36,114 @@
     <source src="myvideo.mp4" type="video/mp4">
   </video>
   <canvas id="canvasFrame"></canvas>
-  <canvas id="canvasOutput"></canvas>
 
-  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+  <div class="debug-container">
+    <div class="debug-title">Canvas Output</div>
+    <canvas id="canvasOutput"></canvas>
+  </div>
+
+  <div class="debug-container">
+    <div class="debug-title">Grayscale</div>
+    <canvas id="canvasGray"></canvas>
+  </div>
+
+  <div class="debug-container">
+    <div class="debug-title">Edge</div>
+    <canvas id="canvasEdge"></canvas>
+  </div>
+
   <script>
-    let video = document.getElementById("video");
+    const video = document.getElementById("video");
+    const canvasFrame = document.getElementById("canvasFrame");
+    const canvasOutput = document.getElementById("canvasOutput");
+    const canvasGray = document.getElementById("canvasGray");
+    const canvasEdge = document.getElementById("canvasEdge");
 
-    function onOpenCvReady() {
-      cv['onRuntimeInitialized'] = () => {
-        video.addEventListener("loadedmetadata", () => {
-          // Thiết lập lại canvas đúng kích thước
-          const width = video.videoWidth;
-          const height = video.videoHeight;
+    const ctxFrame = canvasFrame.getContext("2d");
+    const ctxOutput = canvasOutput.getContext("2d");
+    const ctxGray = canvasGray.getContext("2d");
+    const ctxEdge = canvasEdge.getContext("2d");
 
-          const canvasFrame = document.getElementById("canvasFrame");
-          const ctxFrame = canvasFrame.getContext("2d");
-          const canvasOutput = document.getElementById("canvasOutput");
+    video.addEventListener("loadedmetadata", () => {
+      const width = video.videoWidth;
+      const height = video.videoHeight;
 
-          canvasFrame.width = width;
-          canvasFrame.height = height;
-          canvasOutput.width = width;
-          canvasOutput.height = height;
+      [canvasFrame, canvasOutput, canvasGray, canvasEdge].forEach(c => {
+        c.width = width;
+        c.height = height;
+      });
 
-          const src = new cv.Mat(height, width, cv.CV_8UC4);
-          const gray = new cv.Mat();
-          const edges = new cv.Mat();
+      function toGrayscale(data) {
+        const gray = new Uint8ClampedArray(data.length / 4);
+        for (let i = 0; i < gray.length; i++) {
+          const offset = i * 4;
+          const r = data[offset];
+          const g = data[offset + 1];
+          const b = data[offset + 2];
+          gray[i] = 0.299 * r + 0.587 * g + 0.114 * b;
+        }
+        return gray;
+      }
 
-          function processFrame() {
-            if (video.paused || video.ended) {
-              src.delete(); gray.delete(); edges.delete();
-              return;
+      function renderGrayToCanvas(gray, ctx, width, height) {
+        const imageData = ctx.createImageData(width, height);
+        for (let i = 0; i < gray.length; i++) {
+          const offset = i * 4;
+          imageData.data[offset] = imageData.data[offset + 1] = imageData.data[offset + 2] = gray[i];
+          imageData.data[offset + 3] = 255;
+        }
+        ctx.putImageData(imageData, 0, 0);
+      }
+
+      function sobelEdge(gray, width, height, threshold = 100) {
+        const output = new Uint8ClampedArray(width * height * 4);
+        const Gx = [-1, 0, 1, -2, 0, 2, -1, 0, 1];
+        const Gy = [-1, -2, -1, 0, 0, 0, 1, 2, 1];
+
+        for (let y = 1; y < height - 1; y++) {
+          for (let x = 1; x < width - 1; x++) {
+            let sx = 0, sy = 0;
+            for (let ky = -1; ky <= 1; ky++) {
+              for (let kx = -1; kx <= 1; kx++) {
+                const px = x + kx;
+                const py = y + ky;
+                const val = gray[py * width + px];
+                const idx = (ky + 1) * 3 + (kx + 1);
+                sx += Gx[idx] * val;
+                sy += Gy[idx] * val;
+              }
             }
-
-            ctxFrame.drawImage(video, 0, 0, width, height);
-            let imageData = ctxFrame.getImageData(0, 0, width, height);
-            src.data.set(imageData.data);
-
-            cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
-            cv.Canny(gray, edges, 50, 150);
-            cv.imshow("canvasOutput", edges);
-
-            requestAnimationFrame(processFrame);
+            const mag = Math.sqrt(sx * sx + sy * sy);
+            const offset = (y * width + x) * 4;
+            const edge = mag > threshold ? 255 : 0;
+            output[offset] = output[offset + 1] = output[offset + 2] = edge;
+            output[offset + 3] = 255;
           }
+        }
+        return output;
+      }
 
-          video.addEventListener("play", () => {
-            requestAnimationFrame(processFrame);
-          });
-        });
-      };
-    }
+      function processFrame() {
+        if (video.paused || video.ended) return;
+
+        ctxFrame.drawImage(video, 0, 0, width, height);
+        const imageData = ctxFrame.getImageData(0, 0, width, height);
+        const gray = toGrayscale(imageData.data);
+        renderGrayToCanvas(gray, ctxGray, width, height);
+
+        const edgeData = sobelEdge(gray, width, height);
+        ctxEdge.putImageData(new ImageData(edgeData, width, height), 0, 0);
+
+        const resultImage = new ImageData(edgeData, width, height);
+        ctxOutput.putImageData(resultImage, 0, 0);
+
+        requestAnimationFrame(processFrame);
+      }
+
+      video.addEventListener("play", () => {
+        requestAnimationFrame(processFrame);
+      });
+    });
   </script>
-  <script onload="onOpenCvReady()" async src="https://docs.opencv.org/4.x/opencv.js"></script>
 </body>
 </html>
